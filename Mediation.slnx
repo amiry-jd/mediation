@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Mediation.SampleConsole/Mediation.SampleConsole.csproj" />
+  <Project Path="Mediation/Mediation.csproj" />
+</Solution>
