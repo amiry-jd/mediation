@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag to release, for example v1.4.2
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish NuGet Package
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tag '$tag' must match vMAJOR.MINOR.PATCH."
+          }
+          $version = $tag.Substring(1)
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+            .config/dotnet-tools.json
+
+      - name: Restore
+        run: dotnet restore Mediation.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build Mediation.slnx --configuration Release --no-restore /p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test tests/Mediation.Tests/Mediation.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
+
+      - name: API compatibility
+        run: dotnet run --configuration Release --project tools/ApiCompat/ApiCompat.csproj --no-build -- ${{ github.workspace }}
+
+      - name: Vulnerability audit
+        run: dotnet list Mediation.slnx package --vulnerable --include-transitive
+
+      - name: Pack
+        run: dotnet pack Mediation/Mediation.csproj --configuration Release --no-build --output artifacts/packages /p:PackageVersion=${{ steps.version.outputs.version }}
+
+      - name: Generate release notes
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $previous = git describe --tags --abbrev=0 "${{ steps.version.outputs.tag }}^" 2>$null
+          if ($LASTEXITCODE -eq 0 -and $previous) {
+            git log "$previous..${{ steps.version.outputs.tag }}" --pretty=format:"- %s" | Out-File artifacts/release-notes.md -Encoding utf8
+          } else {
+            "- Initial release ${{ steps.version.outputs.tag }}" | Out-File artifacts/release-notes.md -Encoding utf8
+          }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body_path: artifacts/release-notes.md
+          files: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+
+      - name: Publish to NuGet
+        run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

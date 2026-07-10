@@ -1,46 +1,50 @@
-﻿namespace Mediation.SampleConsole;
+namespace Mediation.SampleConsole;
 
-public record CreateUserResponse { }
+internal sealed record CreateUserResponse;
 
-public record CreateUserRequest : IRequest<CreateUserResponse> { }
+internal sealed record CreateUserRequest : IRequest<CreateUserResponse>;
 
-public class CreateUserRequestHandler : IRequestHandler<CreateUserRequest, CreateUserResponse>
+internal sealed class CreateUserRequestHandler : IRequestHandler<CreateUserRequest, CreateUserResponse>
 {
-    public ValueTask<CreateUserResponse> Handle(CreateUserRequest request, CancellationToken ct)
+    public ValueTask<CreateUserResponse> Handle(CreateUserRequest request, CancellationToken cancellationToken)
     {
         Console.WriteLine("Message from request handler...");
         return ValueTask.FromResult(new CreateUserResponse());
     }
 }
 
-public readonly struct LoggingBehavior<TRequest, TResponse>
+internal readonly struct LoggingBehavior<TRequest, TResponse>
     : IPipelineBehavior<TRequest, TResponse>
 {
     public async ValueTask<TResponse> Handle(
         IServiceProvider serviceProvider,
         TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken ct
+        RequestPipelineContinuation<TResponse> nextHandler,
+        CancellationToken cancellationToken
         )
     {
+        ArgumentNullException.ThrowIfNull(nextHandler);
+
         Console.WriteLine("Message from logging behavior...");
         Console.WriteLine(typeof(TRequest).Name);
-        return await next();
+        return await nextHandler().ConfigureAwait(false);
     }
 }
 
-public readonly struct AuthBehavior<TRequest, TResponse>
+internal readonly struct AuthBehavior<TRequest, TResponse>
     : IPipelineBehavior<TRequest, TResponse>
 {
     public async ValueTask<TResponse> Handle(
         IServiceProvider serviceProvider,
         TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken ct
+        RequestPipelineContinuation<TResponse> nextHandler,
+        CancellationToken cancellationToken
         )
     {
+        ArgumentNullException.ThrowIfNull(nextHandler);
+
         Console.WriteLine("Message from auth behavior...");
         Console.WriteLine(typeof(TRequest).Name);
-        return await next();
+        return await nextHandler().ConfigureAwait(false);
     }
 }

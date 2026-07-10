@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="benchmarks/Mediation.Benchmarks/Mediation.Benchmarks.csproj" />
   <Project Path="Mediation.SampleConsole/Mediation.SampleConsole.csproj" />
   <Project Path="Mediation/Mediation.csproj" />
+  <Project Path="tests/Mediation.Tests/Mediation.Tests.csproj" />
 </Solution>

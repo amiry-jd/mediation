@@ -1,0 +1,20 @@
+#nullable enable
+Mediation.IMediator
+Mediation.IMediator.Send<TResponse>(Mediation.IRequest<TResponse>! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResponse>
+Mediation.IPipelineBehavior<TRequest, TResponse>
+Mediation.IPipelineBehavior<TRequest, TResponse>.Handle(System.IServiceProvider! serviceProvider, TRequest request, Mediation.RequestPipelineContinuation<TResponse>! nextHandler, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResponse>
+Mediation.IRequest<TResponse>
+Mediation.IRequestHandler<TRequest, TResponse>
+Mediation.IRequestHandler<TRequest, TResponse>.Handle(TRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResponse>
+Mediation.Mediator
+Mediation.Mediator.Mediator(System.IServiceProvider! serviceProvider) -> void
+Mediation.Mediator.Send<TResponse>(Mediation.IRequest<TResponse>! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResponse>
+Mediation.MediatorConfiguration
+Mediation.MediatorConfiguration.WithBehaviors(params System.Type![]! behaviorTypes) -> Mediation.MediatorConfigurationGroup!
+Mediation.MediatorConfiguration.WithNoBehavior() -> Mediation.MediatorConfigurationGroup!
+Mediation.MediatorConfigurationGroup
+Mediation.MediatorConfigurationGroup.Register<TRequest, TResponse, TRequestHandler>() -> Mediation.MediatorConfigurationGroup!
+Mediation.MediatorConfigurationGroup.RegisterForAssemblies(System.Reflection.Assembly! assembly, params System.Reflection.Assembly![]! assemblies) -> Mediation.MediatorConfigurationGroup!
+Mediation.MediatorServiceCollectionExtensions
+Mediation.RequestPipelineContinuation<TResponse>
+static Mediation.MediatorServiceCollectionExtensions.AddMediator(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Mediation.MediatorConfiguration!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

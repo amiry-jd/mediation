@@ -1,0 +1,38 @@
+name: Bug Report
+description: Report a reproducible defect.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Explain what happened and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Provide minimal code or steps to reproduce.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package Version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Target Framework / Runtime
+      placeholder: net8.0 on .NET 10 SDK
+    validations:
+      required: true

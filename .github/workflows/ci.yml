@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+            .config/dotnet-tools.json
+
+      - name: Restore
+        run: dotnet restore Mediation.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build Mediation.slnx --configuration Release --no-restore
+
+      - name: Test with coverage
+        run: >
+          dotnet test tests/Mediation.Tests/Mediation.Tests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=tests.trx"
+          --results-directory artifacts/test-results
+          /p:CollectCoverage=true
+          /p:CoverletOutput=../../artifacts/coverage/
+          /p:CoverletOutputFormat=cobertura
+          /p:Threshold=90
+          /p:ThresholdType=line
+          /p:ThresholdStat=total
+
+      - name: Generate coverage report
+        run: |
+          dotnet tool restore
+          dotnet reportgenerator -reports:artifacts/coverage/coverage.cobertura.xml -targetdir:artifacts/coverage/report -reporttypes:"HtmlInline_AzurePipelines;Cobertura;MarkdownSummaryGithub"
+
+      - name: API compatibility and breaking-change validation
+        run: dotnet run --configuration Release --project tools/ApiCompat/ApiCompat.csproj --no-build -- ${{ github.workspace }}
+
+      - name: Security validation
+        run: dotnet list Mediation.slnx package --vulnerable --include-transitive
+
+      - name: Package validation
+        run: dotnet pack Mediation/Mediation.csproj --configuration Release --no-build --output artifacts/packages
+
+      - name: Benchmark smoke validation
+        run: dotnet run --configuration Release --project benchmarks/Mediation.Benchmarks/Mediation.Benchmarks.csproj -- --filter '*' --job short --minIterationCount 1 --maxIterationCount 1 --warmupCount 1 --artifacts artifacts/benchmarks
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results
+          path: artifacts/test-results
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-report
+          path: artifacts/coverage
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: artifacts/packages
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: benchmarks
+          path: artifacts/benchmarks

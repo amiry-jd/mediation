@@ -1,15 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<PublishAot>true</PublishAot>
-		<InvariantGlobalization>true</InvariantGlobalization>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <PackageId>Mediation</PackageId>
+    <Title>Mediation</Title>
+    <Description>A lightweight request/response mediator for .NET with precompiled struct-based pipeline behaviors and Microsoft.Extensions.DependencyInjection integration.</Description>
+    <PackageTags>mediator;mediatr;cqrs;pipeline;dependency-injection;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>mediation-icon.png</PackageIcon>
+    <PackageReleaseNotes>Initial production-grade package metadata, API compatibility tracking, documentation, tests, benchmarks, and CI/CD automation.</PackageReleaseNotes>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\assets\mediation-icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

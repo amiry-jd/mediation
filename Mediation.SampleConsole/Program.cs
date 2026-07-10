@@ -1,17 +1,15 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Mediation.SampleConsole;
 
 [RequiresDynamicCode("")]
 [RequiresUnreferencedCode("")]
-public class Program
+internal static class Program
 {
-    private static void Main(string[] args)
-    {
-        Run(args);
-    }
+    private static async Task Main(string[] args)
+        => await Run(args).ConfigureAwait(false);
 
-    private static void Run(string[] args)
+    private static async Task Run(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +19,7 @@ public class Program
                     typeof(LoggingBehavior<,>),
                     typeof(AuthBehavior<,>)
                 )
-                //.Register<CreateUserRequest, CreateUserResponse, CreateUserRequestHandler>()
                 .RegisterForAssemblies(typeof(CreateUserRequest).Assembly);
-            //config.WithNoBehavior()
-            //    .Register<CreateUserRequest, CreateUserResponse, CreateUserRequestHandler>();
         });
 
         var app = builder.Build();
@@ -34,10 +29,10 @@ public class Program
             var sp = scope.ServiceProvider;
             var m = sp.GetRequiredService<IMediator>();
             var req = new CreateUserRequest();
-            var res = m.Send(req).GetAwaiter().GetResult();
-            Console.WriteLine(res.GetType().Name);
+            var response = await m.Send(req).ConfigureAwait(false);
+            Console.WriteLine(response.GetType().Name);
         }
 
-        app.Run();
+        await app.RunAsync().ConfigureAwait(false);
     }
 }

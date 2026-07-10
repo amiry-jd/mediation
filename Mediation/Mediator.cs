@@ -1,73 +1,54 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
-using System.Reflection;
-
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Mediation;
 
-public interface IPipelineBehavior<TRequest, TResponse>
-{
-    ValueTask<TResponse> Handle(
-        IServiceProvider serviceProvider,
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken ct);
-}
-
+/// <summary>
+/// Defines a dispatcher for sending requests to their registered handlers.
+/// </summary>
 public interface IMediator
 {
-    [RequiresDynamicCode("Calls dynamic code")]
+    /// <summary>
+    /// Sends a request to the matching registered request handler.
+    /// </summary>
+    /// <typeparam name="TResponse">The response type produced by the request.</typeparam>
+    /// <param name="request">The request instance to dispatch.</param>
+    /// <param name="cancellationToken">A token used to cancel request processing.</param>
+    /// <returns>The response returned by the matching request handler.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is <see langword="null" />.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no handler pipeline has been registered for the request type.</exception>
     ValueTask<TResponse> Send<TResponse>(
         IRequest<TResponse> request,
-        CancellationToken ct = default
-    );
+        CancellationToken cancellationToken = default);
 }
 
-public sealed class Mediator(IServiceProvider serviceProvider) : IMediator
+/// <summary>
+/// Dispatches request objects to handlers registered in an <see cref="IServiceProvider" />.
+/// </summary>
+public sealed class Mediator : IMediator
 {
-    private static readonly ConcurrentDictionary<Type, Delegate> _cache = new();
+    private readonly MediatorRegistry registry;
+    private readonly IServiceProvider serviceProvider;
 
-    [RequiresDynamicCode("Calls Mediation.Mediator.GetCall<TResponse>(IRequest<TResponse>)")]
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Mediator" /> class.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider used to resolve request handlers.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="serviceProvider"/> is <see langword="null" />.</exception>
+    public Mediator(IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        this.serviceProvider = serviceProvider;
+        registry = serviceProvider.GetRequiredService<MediatorRegistry>();
+    }
+
+    /// <inheritdoc />
     public ValueTask<TResponse> Send<TResponse>(
-          IRequest<TResponse> request,
-          CancellationToken ct = default)
+        IRequest<TResponse> request,
+        CancellationToken cancellationToken = default)
     {
-        Delegate call = GetCall(request);
-        var r = call.DynamicInvoke(this, request, ct);
-        if (r is not null)
-            return (ValueTask<TResponse>)r;
-        return default;
-    }
+        ArgumentNullException.ThrowIfNull(request);
 
-    [RequiresDynamicCode("Calls System.Linq.Expressions.Expression.Lambda(Expression, bool, params ParameterExpression[]?)")]
-    private Delegate GetCall<TResponse>(IRequest<TResponse> request)
-    {
-        var reqType = request.GetType();
-        return _cache.GetOrAdd(reqType, static (reqType, resType) =>
-        {
-            var thisParam = Expression.Parameter(typeof(Mediator), "t");
-            var reqParam = Expression.Parameter(reqType, "request");
-            var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
-            var method = typeof(Mediator)
-                .GetMethod(nameof(SendInternal), BindingFlags.Instance | BindingFlags.NonPublic);
-            var methodInfo = method!.MakeGenericMethod(reqType, resType);
-            Expression call = Expression.Call(thisParam, methodInfo, reqParam, ctParam);
-            var lambda = Expression.Lambda(call, false, thisParam, reqParam, ctParam);
-            return lambda.Compile();
-        }, typeof(TResponse));
-    }
-
-    private ValueTask<TResponse> SendInternal<TRequest, TResponse>(
-        TRequest request,
-        CancellationToken ct)
-        where TRequest : IRequest<TResponse>
-    {
-        var handler = serviceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-
-        var pipeline = RequestSlot<TRequest, TResponse>.Pipeline!;
-
-        return pipeline(serviceProvider, handler, request, ct);
+        return registry.Send(serviceProvider, request, cancellationToken);
     }
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Mediation package icon</title>
+  <rect width="128" height="128" rx="24" fill="#1f4f8f"/>
+  <path d="M26 38h34a18 18 0 0 1 18 18v4h24v14H78v4a18 18 0 0 1-18 18H26V82h34a4 4 0 0 0 4-4V56a4 4 0 0 0-4-4H26z" fill="#ffffff"/>
+  <circle cx="102" cy="67" r="12" fill="#8ed1fc"/>
+</svg>
